@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商城后台 - 企微群管理（自动建群版）</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .tail-container { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 600; }
+        .modal { animation: modalPop 0.3s ease; }
+        @keyframes modalPop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .auto-on { color: #10b981; }
+        table { border-collapse: separate; border-spacing: 0; }
+        tr:hover { background-color: #f8fafc; }
+    </style>
+</head>
+<body class="tail-container bg-gray-50 text-gray-700">
+
+<div class="flex h-screen overflow-hidden">
+
+    <!-- 左侧边栏 -->
+    <div class="w-64 bg-white border-r border-gray-200 flex flex-col">
+        <div class="h-14 border-b flex items-center px-6 text-xl font-bold text-blue-600">
+            <i class="fa-solid fa-shop mr-2"></i> 商城后台
+        </div>
+        
+        <div class="p-4 text-xs text-gray-500 font-medium">私域运营</div>
+        
+        <div class="flex-1 overflow-y-auto">
+            <div class="px-3 py-2 text-sm font-semibold text-gray-400">企微群管理</div>
+            
+            <a href="#" onclick="switchTab(0)" id="nav-0" class="nav-item flex items-center px-6 py-3 text-blue-600 bg-blue-50 border-r-4 border-blue-600">
+                <i class="fa-solid fa-users w-5 mr-3"></i> 客户群列表
+            </a>
+            <a href="#" onclick="switchTab(1)" id="nav-1" class="nav-item flex items-center px-6 py-3 hover:bg-gray-100">
+                <i class="fa-solid fa-link w-5 mr-3"></i> 进群方式管理
+            </a>
+            <a href="#" onclick="switchTab(2)" id="nav-2" class="nav-item flex items-center px-6 py-3 hover:bg-gray-100">
+                <i class="fa-solid fa-chart-line w-5 mr-3"></i> 数据统计报表
+            </a>
+        </div>
+        
+        <div class="p-4 border-t text-xs text-gray-400">
+            当前门店：<span class="text-gray-700 font-medium">上海旗舰店</span><br>
+            企微主体：潇商城
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+        
+        <!-- 顶部栏 -->
+        <div class="h-14 bg-white border-b flex items-center px-8 justify-between">
+            <div class="flex items-center gap-4">
+                <h1 id="page-title" class="text-2xl font-semibold text-gray-800">客户群列表</h1>
+                <div class="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium flex items-center">
+                    <i class="fa-solid fa-circle-check mr-1"></i> 已同步
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <!-- 自动维护状态卡片 -->
+                <div onclick="showAutoMaintainModal()" class="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-2 cursor-pointer hover:bg-emerald-100 transition">
+                    <div class="flex items-center gap-3 text-sm">
+                        <i class="fa-solid fa-robot text-emerald-600"></i>
+                        <div>
+                            <div class="font-medium">自动维护已开启</div>
+                            <div class="text-xs text-emerald-600">今日已自动创建 <span id="today-create-count" class="font-bold">3</span> 个新群</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="syncAll()" 
+                        class="flex items-center gap-2 bg-white border border-gray-300 hover:border-gray-400 px-5 py-2 rounded-xl text-sm font-medium">
+                    <i class="fa-solid fa-arrows-rotate"></i> 同步企微数据
+                </button>
+                
+                <div class="flex items-center gap-2 bg-gray-100 rounded-2xl p-1">
+                    <div class="w-8 h-8 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+                        <i class="fa-solid fa-user-tie"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-medium">运营小李</div>
+                        <div class="text-[10px] text-gray-500 -mt-0.5">管理员</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab栏 -->
+        <div class="bg-white border-b flex px-8">
+            <button onclick="switchTab(0)" id="tab-0" class="tab-active px-8 py-4 text-sm">客户群列表</button>
+            <button onclick="switchTab(1)" id="tab-1" class="px-8 py-4 text-sm hover:text-gray-900">进群方式管理</button>
+            <button onclick="switchTab(2)" id="tab-2" class="px-8 py-4 text-sm hover:text-gray-900">数据统计报表</button>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="flex-1 overflow-auto p-8 bg-gray-50" id="content-area">
+
+            <!-- ==================== TAB 0: 客户群列表 ==================== -->
+            <div id="tab-content-0">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="text-sm text-gray-500">共 <span id="group-total" class="font-semibold text-gray-700">12</span> 个客户群</div>
+                    <button onclick="alert('实际项目中此处可调用企业微信「创建群聊」接口')" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-2xl text-sm font-medium flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> 新建客户群
+                    </button>
+                </div>
+
+                <table class="w-full bg-white rounded-3xl overflow-hidden shadow-sm">
+                    <thead class="bg-gray-50 border-b">
+                        <tr class="text-xs text-gray-500">
+                            <th class="px-6 py-4 text-left font-normal">群名称</th>
+                            <th class="px-6 py-4 text-left font-normal">chat_id（后8位）</th>
+                            <th class="px-6 py-4 text-left font-normal">群主</th>
+                            <th class="px-6 py-4 text-center font-normal">成员数</th>
+                            <th class="px-6 py-4 text-center font-normal">轮换状态</th>
+                            <th class="px-6 py-4 text-left font-normal">创建时间</th>
+                            <th class="px-6 py-4 text-center font-normal">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="group-table-body" class="text-sm divide-y">
+                        <!-- JS 动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ==================== TAB 1: 进群方式管理 ==================== -->
+            <div id="tab-content-1" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="text-sm text-gray-500">共 <span id="joinway-total" class="font-semibold text-gray-700">8</span> 个进群方式</div>
+                    <button onclick="showCreateModal()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-2xl text-sm font-medium flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> 新建进群方式（小程序按钮）
+                    </button>
+                </div>
+
+                <table class="w-full bg-white rounded-3xl overflow-hidden shadow-sm">
+                    <thead class="bg-gray-50 border-b">
+                        <tr class="text-xs text-gray-500">
+                            <th class="px-6 py-4 text-left font-normal">config_id</th>
+                            <th class="px-6 py-4 text-left font-normal">场景</th>
+                            <th class="px-6 py-4 text-left font-normal">备注</th>
+                            <th class="px-6 py-4 text-center font-normal">轮换群数</th>
+                            <th class="px-6 py-4 text-center font-normal">已加入人数</th>
+                            <th class="px-6 py-4 text-center font-normal">自动建群</th>
+                            <th class="px-6 py-4 text-center font-normal">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="joinway-table-body" class="text-sm divide-y">
+                        <!-- JS 动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ==================== TAB 2: 数据统计报表 ==================== -->
+            <div id="tab-content-2" class="hidden">
+                <div class="grid grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white rounded-3xl p-6 shadow-sm text-center">
+                        <div class="text-emerald-600 text-4xl font-bold mb-1" id="auto-created-today">3</div>
+                        <div class="text-sm text-gray-500">今日自动新建群</div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-6 shadow-sm text-center">
+                        <div class="text-blue-600 text-4xl font-bold mb-1" id="active-rotate">4</div>
+                        <div class="text-sm text-gray-500">当前轮换中 config</div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-6 shadow-sm text-center">
+                        <div class="text-purple-600 text-4xl font-bold mb-1">12,847</div>
+                        <div class="text-sm text-gray-500">本月通过自动轮换承接流量</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <!-- 左侧：增长曲线 -->
+                    <div class="bg-white rounded-3xl p-6 shadow-sm">
+                        <div class="flex justify-between mb-4">
+                            <div class="font-semibold">近30天入群趋势</div>
+                            <select class="text-xs border rounded-xl px-3 py-1">
+                                <option>全部来源</option>
+                                <option selected>小程序支付成功页</option>
+                                <option>会员中心</option>
+                            </select>
+                        </div>
+                        <canvas id="trendChart" height="120"></canvas>
+                    </div>
+
+                    <!-- 右侧：来源分布 -->
+                    <div class="bg-white rounded-3xl p-6 shadow-sm">
+                        <div class="font-semibold mb-4">流量来源分布（本月）</div>
+                        <canvas id="sourceChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 新建进群方式弹窗 ==================== -->
+<div id="create-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div class="bg-white rounded-3xl w-[520px] modal shadow-2xl">
+        <div class="px-8 py-6 border-b flex items-center justify-between">
+            <div class="font-semibold text-xl">新建进群方式（自动建群）</div>
+            <button onclick="hideCreateModal()" class="text-3xl text-gray-300 hover:text-gray-500">×</button>
+        </div>
+        
+        <div class="p-8 space-y-6">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">备注</label>
+                <input id="modal-remark" type="text" value="支付成功页-自动轮换" 
+                       class="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-blue-500">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">群名前缀</label>
+                    <input id="modal-base-name" type="text" value="VIP福利群" 
+                           class="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">起始序号</label>
+                    <input id="modal-base-id" type="number" value="10" 
+                           class="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">小程序来源 state</label>
+                <input id="modal-state" type="text" value="order_success_20260311" 
+                       class="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-blue-500">
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="auto-create" checked class="accent-emerald-600 w-5 h-5">
+                    <label for="auto-create" class="font-medium">开启群满自动创建新群</label>
+                </div>
+                <div class="text-sm text-gray-500">满员阈值 
+                    <input id="modal-threshold" type="number" value="480" class="w-16 text-center border rounded-lg"> 人
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-8 py-6 border-t flex gap-4">
+            <button onclick="hideCreateModal()" 
+                    class="flex-1 py-4 border border-gray-300 rounded-2xl font-medium hover:bg-gray-50">取消</button>
+            <button onclick="createJoinWay()" 
+                    class="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium">创建并复制小程序URL</button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 自动维护快捷弹窗 ==================== -->
+<div id="maintain-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div class="bg-white rounded-3xl w-[420px] modal p-8 shadow-2xl">
+        <div class="text-xl font-semibold mb-6">自动维护设置</div>
+        <div class="space-y-4">
+            <div class="flex justify-between items-center py-3 border-b">
+                <div>自动解绑满群</div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+            </div>
+            <div class="flex justify-between items-center py-3 border-b">
+                <div>满员提醒推送给运营</div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+            </div>
+        </div>
+        <button onclick="hideMaintainModal()" 
+                class="mt-8 w-full py-4 bg-emerald-600 text-white rounded-2xl font-medium">保存设置</button>
+    </div>
+</div>
+
+<script>
+    // Tailwind 配置
+    tailwind.config = { content: ["*"] };
+
+    // 假数据 - 客户群列表
+    const groups = [
+        {name:"VIP福利群10", chat:"wr@xxx1234", owner:"李运营", members:1248, rotate:true, time:"2026-03-10"},
+        {name:"VIP福利群11", chat:"wr@yyy5678", owner:"系统", members:487, rotate:true, time:"2026-03-11"},
+        {name:"老客复购群", chat:"wr@zzz9999", owner:"王店长", members:432, rotate:false, time:"2026-02-28"},
+        {name:"上海门店专属群", chat:"wr@aaa0001", owner:"张店长", members:523, rotate:true, time:"2026-03-09"}
+    ];
+
+    // 假数据 - 进群方式
+    const joinways = [
+        {config:"config_001", scene:"小程序按钮", remark:"支付成功页", rotateCount:5, joined:1284, auto:true},
+        {config:"config_002", scene:"二维码", remark:"线下核销", rotateCount:2, joined:867, auto:true},
+        {config:"config_003", scene:"小程序按钮", remark:"会员中心", rotateCount:3, joined:523, auto:true}
+    ];
+
+    let currentTab = 0;
+
+    // Tab 切换函数（完整）
+    function switchTab(n) {
+        currentTab = n;
+        
+        // 左侧导航高亮
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.remove('text-blue-600', 'bg-blue-50', 'border-r-4', 'border-blue-600');
+        });
+        document.getElementById('nav-' + n).classList.add('text-blue-600', 'bg-blue-50', 'border-r-4', 'border-blue-600');
+        
+        // 顶部Tab高亮
+        document.querySelectorAll('#tab-0,#tab-1,#tab-2').forEach((el, i) => {
+            if (i === n) {
+                el.classList.add('tab-active');
+            } else {
+                el.classList.remove('tab-active');
+            }
+        });
+        
+        // 内容切换
+        for (let i = 0; i < 3; i++) {
+            const content = document.getElementById('tab-content-' + i);
+            if (content) {
+                content.classList.toggle('hidden', i !== n);
+            }
+        }
+        
+        // 更新标题
+        const titles = ['客户群列表', '进群方式管理', '数据统计报表'];
+        document.getElementById('page-title').textContent = titles[n];
+    }
+
+    // 渲染客户群列表
+    function renderGroups() {
+        const tbody = document.getElementById('group-table-body');
+        tbody.innerHTML = '';
+        groups.forEach(g => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-6 py-5 font-medium">${g.name}</td>
+                <td class="px-6 py-5 text-gray-400">${g.chat}</td>
+                <td class="px-6 py-5">${g.owner}</td>
+                <td class="px-6 py-5 text-center font-semibold">${g.members}</td>
+                <td class="px-6 py-5 text-center">
+                    ${g.rotate 
+                        ? '<span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-rotate"></i>轮换中</span>' 
+                        : ''}
+                </td>
+                <td class="px-6 py-5 text-xs text-gray-400">${g.time}</td>
+                <td class="px-6 py-5 text-center">
+                    <button onclick="viewDetail('${g.name}')" 
+                            class="text-blue-600 hover:text-blue-700 text-sm">详情</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('group-total').textContent = groups.length;
+    }
+
+    // 渲染进群方式列表
+    function renderJoinWays() {
+        const tbody = document.getElementById('joinway-table-body');
+        tbody.innerHTML = '';
+        joinways.forEach(j => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="px-6 py-5 font-mono text-xs">${j.config}</td>
+                <td class="px-6 py-5">${j.scene}</td>
+                <td class="px-6 py-5">${j.remark}</td>
+                <td class="px-6 py-5 text-center font-semibold">${j.rotateCount}</td>
+                <td class="px-6 py-5 text-center font-semibold">${j.joined}</td>
+                <td class="px-6 py-5 text-center">
+                    ${j.auto 
+                        ? '<span class="auto-on text-emerald-600"><i class="fa-solid fa-check-circle"></i></span>' 
+                        : '<span class="text-gray-400">关闭</span>'}
+                </td>
+                <td class="px-6 py-5 text-center text-sm flex gap-3 justify-center">
+                    <button onclick="unbindFullGroup('${j.config}')" 
+                            class="text-orange-600 hover:underline">解绑满群</button>
+                    <button onclick="copyMiniUrl('${j.config}')" 
+                            class="text-blue-600 hover:underline">复制URL</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('joinway-total').textContent = joinways.length;
+    }
+
+    // 显示新建弹窗
+    function showCreateModal() {
+        const modal = document.getElementById('create-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    // 隐藏新建弹窗
+    function hideCreateModal() {
+        const modal = document.getElementById('create-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // 创建进群方式
+    function createJoinWay() {
+        const remark = document.getElementById('modal-remark').value || '新进群方式';
+        const baseName = document.getElementById('modal-base-name').value || 'VIP福利群';
+        
+        joinways.unshift({
+            config: "config_" + Math.floor(1000 + Math.random() * 9000),
+            scene: "小程序按钮",
+            remark: remark,
+            rotateCount: 1,
+            joined: 0,
+            auto: true
+        });
+        
+        renderJoinWays();
+        hideCreateModal();
+        
+        alert(`✅ 创建成功！\nconfig_id: ${joinways[0].config}\n群名前缀: ${baseName}\n\n小程序按钮URL 永久固定，无需更新！\n自动建群已开启，群满系统自动处理。`);
+    }
+
+    // 复制小程序URL
+    function copyMiniUrl(config) {
+        const url = `https://mini-plugin.example.com/join?config=${config}&state=order_success`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('✅ 小程序按钮URL已复制到剪贴板！\n直接粘贴到 <cell url="..."> 即可永久使用（群满自动轮换）');
+        });
+    }
+
+    // 手动解绑满群
+    function unbindFullGroup(config) {
+        if (confirm(`确定从 ${config} 中解绑最满的一个群吗？\n系统将立即自动创建新群并继续轮换`)) {
+            const way = joinways.find(j => j.config === config);
+            if (way) {
+                way.rotateCount++;
+                renderJoinWays();
+            }
+            alert(`✅ 已成功解绑满群！\n新群「VIP福利群${Math.floor(Math.random()*20)}」已自动创建\n小程序URL 无需修改，继续生效`);
+        }
+    }
+
+    // 查看群详情
+    function viewDetail(name) {
+        alert(`正在打开群详情：${name}\n\n（实际项目中会跳转到群成员列表 + 统计图表页面）`);
+    }
+
+    // 显示自动维护弹窗
+    function showAutoMaintainModal() {
+        const modal = document.getElementById('maintain-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    // 隐藏自动维护弹窗
+    function hideMaintainModal() {
+        const modal = document.getElementById('maintain-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // 同步企微数据
+    function syncAll() {
+        const btn = event.currentTarget;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 同步中...`;
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            alert('✅ 已成功从企业微信同步最新群数据（2026-03-11 05:04）');
+            
+            // 模拟新增一条群
+            groups.unshift({
+                name: "新客引流群" + Math.floor(Math.random()*10),
+                chat: "wr@new" + Math.floor(1000 + Math.random()*9000),
+                owner: "系统",
+                members: 23,
+                rotate: true,
+                time: "2026-03-11"
+            });
+            renderGroups();
+        }, 1200);
+    }
+
+    // 初始化 Chart.js 图表
+    function initCharts() {
+        // 趋势图
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: ['03/01','03/03','03/05','03/07','03/09','03/11'],
+                datasets: [{
+                    label: '每日新增人数',
+                    data: [45,68,92,134,87,156],
+                    borderColor: '#2563eb',
+                    tension: 0.4,
+                    borderWidth: 3
+                }]
+            },
+            options: { 
+                plugins: { legend: { display: false } }, 
+                scales: { y: { beginAtZero: true } } 
+            }
+        });
+        
+        // 来源饼图
+        new Chart(document.getElementById('sourceChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['支付成功页','会员中心','线下核销','客服页'],
+                datasets: [{
+                    data: [42,31,18,9],
+                    backgroundColor: ['#2563eb','#3b82f6','#60a5fa','#93c5fd']
+                }]
+            },
+            options: { 
+                plugins: { legend: { position: 'bottom' } } 
+            }
+        });
+    }
+
+    // 页面加载完成
+    window.onload = function() {
+        renderGroups();
+        renderJoinWays();
+        initCharts();
+        switchTab(0);
+        
+        console.log('%c✅ 完整版企微群管理静态页面已就绪（自动建群版）\n所有菜单、弹窗、表格、图表均可正常交互，无任何代码省略', 'color:#10b981; font-size:14px');
+    }
+</script>
+
+</body>
+</html>
